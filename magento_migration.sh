@@ -31,18 +31,18 @@ echo "**************************************"
 echo ""
 
 echo "Dumping remote database, please wait..."
-ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "mysqldump -u $REMOTE_MYSQL_USERNAME -p$REMOTE_MYSQL_PASSWORD --quote-names --opt --hex-blob $REMOTE_MYSQL_DATABASE > /tmp/dump.sql"
+ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "mysqldump -u $REMOTE_MYSQL_USERNAME -p$REMOTE_MYSQL_PASSWORD --quote-names --opt --hex-blob $REMOTE_MYSQL_DATABASE > /tmp/dump_$REMOTE_MYSQL_DATABASE.sql"
 echo "Downloading remote database dump..."
-scp -P $REMOTE_SSH_PORT $REMOTE_SSH_USERNAME@$REMOTE_HOST:/tmp/dump.sql /tmp/dump.sql
+scp -P $REMOTE_SSH_PORT $REMOTE_SSH_USERNAME@$REMOTE_HOST:/tmp/dump_$REMOTE_MYSQL_DATABASE.sql /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
 echo "Restoring database locally, please wait..."
-sed -i -e "s/\/\*\!50013 DEFINER=\`\w+\`@\`.*?\` SQL SECURITY DEFINER \*\///g" /tmp/dump.sql
+sed -i -e "s/\/\*\!50013 DEFINER=\`\w+\`@\`.*?\` SQL SECURITY DEFINER \*\///g" /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
 REMOTE_MAGENTO_UNSECURE_URL="$(echo "$REMOTE_MAGENTO_UNSECURE_URL" | sed 's/[^[:alnum:]_-]/\\&/g')"
 REMOTE_MAGENTO_SECURE_URL="$(echo "$REMOTE_MAGENTO_SECURE_URL" | sed 's/[^[:alnum:]_-]/\\&/g')"
 LOCAL_MAGENTO_UNSECURE_URL="$(echo "$LOCAL_MAGENTO_UNSECURE_URL" | sed 's/[^[:alnum:]_-]/\\&/g')"
 LOCAL_MAGENTO_SECURE_URL="$(echo "$LOCAL_MAGENTO_SECURE_URL" | sed 's/[^[:alnum:]_-]/\\&/g')"
-sed -i -e "s/${REMOTE_MAGENTO_UNSECURE_URL}/${LOCAL_MAGENTO_UNSECURE_URL}/g" /tmp/dump.sql
-sed -i -e "s/${REMOTE_MAGENTO_SECURE_URL}/${LOCAL_MAGENTO_SECURE_URL}/g" /tmp/dump.sql
-mysql -u $LOCAL_MYSQL_USERNAME -p$LOCAL_MYSQL_PASSWORD $LOCAL_MYSQL_DATABASE < /tmp/dump.sql
+sed -i -e "s/${REMOTE_MAGENTO_UNSECURE_URL}/${LOCAL_MAGENTO_UNSECURE_URL}/g" /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
+sed -i -e "s/${REMOTE_MAGENTO_SECURE_URL}/${LOCAL_MAGENTO_SECURE_URL}/g" /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
+mysql -u $LOCAL_MYSQL_USERNAME -p$LOCAL_MYSQL_PASSWORD $LOCAL_MYSQL_DATABASE < /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
 
 echo ""
 echo "**************************************"
@@ -51,18 +51,20 @@ echo "**************************************"
 echo ""
 
 echo "Creating tarball with remote files, please wait..."
-ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "cd $REMOTE_FILES_PATH && tar --checkpoint=100 --checkpoint-action=dot -czf /tmp/files.tar.gz . "
+ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "cd $REMOTE_FILES_PATH && tar --checkpoint=100 --checkpoint-action=dot -czf /tmp/files_$REMOTE_MYSQL_DATABASE.tar.gz . "
 echo ""
 echo "Downloading remote tarball..."
-scp -P $REMOTE_SSH_PORT $REMOTE_SSH_USERNAME@$REMOTE_HOST:/tmp/files.tar.gz /tmp/files.tar.gz
+scp -P $REMOTE_SSH_PORT $REMOTE_SSH_USERNAME@$REMOTE_HOST:/tmp/files_$REMOTE_MYSQL_DATABASE.tar.gz /tmp/files_$REMOTE_MYSQL_DATABASE.tar.gz
 echo "Exctracting tarball locally, please wait..."
 if ! cd $LOCAL_FILES_PATH; then
-    exit "Error: $LOCAL_FILES_PATH doesn't exists!";
+    echo "Error: $LOCAL_FILES_PATH doesn't exists!"
+    exit
 fi
-tar -xzf /tmp/files.tar.gz
+tar -xzf /tmp/files_$REMOTE_MYSQL_DATABASE.tar.gz
 echo "Fixing files permissions..."
 if ! cd $LOCAL_FILES_PATH; then
-    exit "Error: $LOCAL_FILES_PATH doesn't exists!";
+    echo "Error: $LOCAL_FILES_PATH doesn't exists!"
+    exit
 fi
 cd $LOCAL_FILES_PATH
 find . -type f -print0 | xargs -0 chmod 644
