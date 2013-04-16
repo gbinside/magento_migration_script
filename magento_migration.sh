@@ -31,7 +31,7 @@ echo "**************************************"
 echo ""
 
 echo "Dumping remote database, please wait..."
-ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "mysqldump -u $REMOTE_MYSQL_USERNAME -p$REMOTE_MYSQL_PASSWORD --quote-names --opt --hex-blob $REMOTE_MYSQL_DATABASE > /tmp/dump_$REMOTE_MYSQL_DATABASE.sql"
+ssh $REMOTE_SSH_USERNAME@$REMOTE_HOST -p$REMOTE_SSH_PORT "mysqldump -h $REMOTE_MYSQL_HOSTNAME -u $REMOTE_MYSQL_USERNAME -p$REMOTE_MYSQL_PASSWORD --quote-names --opt --hex-blob $REMOTE_MYSQL_DATABASE > /tmp/dump_$REMOTE_MYSQL_DATABASE.sql"
 echo "Downloading remote database dump..."
 scp -P $REMOTE_SSH_PORT $REMOTE_SSH_USERNAME@$REMOTE_HOST:/tmp/dump_$REMOTE_MYSQL_DATABASE.sql /tmp/dump_$REMOTE_MYSQL_DATABASE.sql
 echo "Restoring database locally, please wait..."
